@@ -46,7 +46,24 @@ app.get('/api/movies/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const data = await getMovieDetails(id);
-    res.json(data);
+    const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
+
+    // Sertakan helper URL gambar lengkap langsung di respons
+    const responseWithImages = {
+      ...data,
+      poster_url: data.poster_path ? `${TMDB_IMG_BASE}/w500${data.poster_path}` : null,
+      backdrop_url: data.backdrop_path ? `${TMDB_IMG_BASE}/original${data.backdrop_path}` : null,
+      posters: (data.images?.posters || []).slice(0, 10).map(img => ({
+        ...img,
+        url: `${TMDB_IMG_BASE}/w500${img.file_path}`
+      })),
+      backdrops: (data.images?.backdrops || []).slice(0, 10).map(img => ({
+        ...img,
+        url: `${TMDB_IMG_BASE}/original${img.file_path}`
+      }))
+    };
+
+    res.json(responseWithImages);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

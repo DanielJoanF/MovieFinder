@@ -36,7 +36,7 @@ export async function getTrendingMovies() {
 
 export async function getMovieDetails(id) {
   const options = getHeaders();
-  const url = `${TMDB_BASE_URL}/movie/${id}?language=id-ID&append_to_response=videos,credits`;
+  const url = `${TMDB_BASE_URL}/movie/${id}?language=id-ID&append_to_response=videos,credits,images&include_image_language=en,null`;
   const res = await fetch(url, options);
   if (!res.ok) throw new Error(`TMDB error: ${res.statusText}`);
   return res.json();
