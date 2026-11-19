@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Detail film · MovieFinder</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/detail.css">
+</head>
+<body>
+  <div class="detail-art" aria-hidden="true"></div>
+  <header class="wrap bar"><a class="brand" href="./">MovieFinder</a><nav class="site-nav" aria-label="Navigasi utama">
+        <a href="./">Beranda</a>
+        <a href="./#shelf">Film</a>
+      </nav><a href="./" id="back">← Kembali</a></header>
+  <main class="wrap detail-page">
+    <section class="film-info">
+      <div id="media" hidden><img id="poster" alt=""></div>
+      <div><h1 id="title">Memuat film...</h1><p id="meta"></p><p id="overview" aria-live="polite"></p>
+        <div class="watch-actions">
+          <button class="btn btn-main" id="save" hidden>+ Watch Later</button>
+          <button class="btn btn-quiet" id="library">Lihat Watch Later</button>
+        </div>
+        <a id="external" hidden target="_blank" rel="noopener">Tonton trailer di YouTube</a>
+        <p role="status" id="notice"></p>
+      </div>
+    </section>
+    <dialog id="watch-list" aria-labelledby="list-title">
+      <form method="dialog"><button class="btn btn-quiet">Tutup</button></form>
+      <h2 id="list-title">Watch Later</h2>
+      <ul id="items"></ul>
+    </dialog>
+  </main>
+  <script type="module" src="./js/film-page.js"></script>
+</body>
+</html>
