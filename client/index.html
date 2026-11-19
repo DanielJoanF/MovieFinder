@@ -3,35 +3,260 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Movie Finder & Player</title>
+  <title>MovieFinder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
   <link rel="stylesheet" href="./css/style.css" />
 </head>
-<body class="dark-theme">
-  <header class="app-header">
-    <div class="logo"> <span>MovieFinder</span></div>
-    <nav class="nav-links">
-      <button id="nav-trending" class="nav-btn active">Trending</button>
-      <button id="nav-library" class="nav-btn">Library / Favorit</button>
-    </nav>
-  </header>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="bg" id="bg-a"></div>
+    <div class="bg" id="bg-b"></div>
+    <div class="tint"></div>
+    <div class="veil"></div>
+  </div>
 
-  <main class="main-content">
-    <!-- Search Bar -->
-    <section class="search-section">
-      <form id="search-form">
-        <input type="text" id="search-input" placeholder="Cari film favoritmu..." autocomplete="off" />
-        <button type="submit">Cari</button>
+  <div class="stage">
+    <header class="bar wrap">
+      <a class="brand" href="./">MovieFinder</a>
+      <form id="search-form" role="search">
+        <label class="sr" for="search-input">Cari film</label>
+        <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
+        <button type="submit" class="btn btn-quiet">Cari</button>
       </form>
-    </section>
+    </header>
 
-    <!-- Content Sections Container -->
-    <section id="content-container">
-      <div id="movies-grid" class="movies-grid"></div>
-      <div id="detail-view" class="detail-view hidden"></div>
-      <div id="player-view" class="player-view hidden"></div>
-    </section>
-  </main>
+    <main class="wrap main">
+      <section class="hero" id="hero" aria-live="polite">
+        <h1 class="hero-title" id="hero-title"></h1>
+        <p class="hero-text" id="hero-text"></p>
+        <div class="meta" id="hero-meta"></div>
+        <div class="actions">
+          <button type="button" class="btn btn-main" id="hero-open">Lihat detail</button>
+        </div>
+        <noscript><p class="hero-text">Halaman ini membutuhkan JavaScript untuk memuat daftar film.</p></noscript>
+      </section>
 
-  <script type="module" src="./js/main.js"></script>
+      <section class="shelf" aria-labelledby="shelf-title">
+        <h2 id="shelf-title">Trending</h2>
+        <div class="rail" id="rail"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+// Atur lewat VITE_API di .env (mis. VITE_API=/api bila memakai proxy Vite).
+const API = import.meta.env?.VITE_API ?? 'http://localhost:5000/api';
+const IMG = 'https://image.tmdb.org/t/p';
+const ROTATE_MS = 9000;
+
+const $ = (s) => document.querySelector(s);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+const el = {
+  rail: $('#rail'), shelfTitle: $('#shelf-title'),
+  title: $('#hero-title'), text: $('#hero-text'), meta: $('#hero-meta'),
+  open: $('#hero-open'), root: document.documentElement,
+  layers: [$('#bg-a'), $('#bg-b')],
+};
+
+const state = { list: [], index: 0, layer: 0, token: 0, timer: null, details: new Map(), paused: false };
+
+async function api(path) {
+  const res = await fetch(`${API}${path}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
+const year = (m) => (m.release_date || m.first_air_date || '').slice(0, 4);
+const nameOf = (m) => m.title || m.name || '';
+
+function loadImage(src, cors = false) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    if (cors) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/* Warna suasana: rata-rata piksel poster, piksel yang lebih jenuh diberi bobot lebih. */
+async function ambientFrom(path) {
+  try {
+    const img = await loadImage(`${IMG}/w92${path}`, true);
+    const c = document.createElement('canvas');
+    c.width = c.height = 16;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, 16, 16);
+    const d = ctx.getImageData(0, 0, 16, 16).data;
+    let r = 0, g = 0, b = 0, w = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const mx = Math.max(d[i], d[i + 1], d[i + 2]);
+      const mn = Math.min(d[i], d[i + 1], d[i + 2]);
+      const wt = 1 + (mx - mn) / 24;
+      r += d[i] * wt; g += d[i + 1] * wt; b += d[i + 2] * wt; w += wt;
+    }
+    r /= w; g /= w; b /= w;
+    const peak = Math.max(r, g, b) || 1;
+    const k = Math.min(1.4, 150 / peak); // tahan agar tidak terlalu terang/gelap
+    return `rgb(${Math.round(r * k)} ${Math.round(g * k)} ${Math.round(b * k)})`;
+  } catch {
+    return null; // CORS/canvas gagal: pertahankan warna sebelumnya
+  }
+}
+
+async function swapBackdrop(path) {
+  if (!path) return;
+  try { await loadImage(`${IMG}/w1280${path}`); } catch { return; }
+  const next = el.layers[1 - state.layer];
+  const prev = el.layers[state.layer];
+  next.style.backgroundImage = `url(${IMG}/w1280${path})`;
+  next.classList.remove('on'); void next.offsetWidth; // restart animasi drift
+  next.classList.add('on');
+  prev.classList.remove('on');
+  state.layer = 1 - state.layer;
+}
+
+function renderRail() {
+  el.rail.replaceChildren();
+  if (!state.list.length) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = 'Tidak ada film yang ditemukan.';
+    el.rail.append(p);
+    return;
+  }
+  state.list.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'card';
+    b.dataset.i = i;
+    const y = year(m);
+    b.innerHTML = `
+      <span class="poster">
+        ${m.poster_path ? `<img src="${IMG}/w342${m.poster_path}" alt="" loading="lazy" />` : ''}
+        ${y ? `<span class="year">${y}</span>` : ''}
+      </span>
+      <span class="card-title"></span>`;
+    b.querySelector('.card-title').textContent = nameOf(m);
+    b.setAttribute('aria-label', `${nameOf(m)} ${y}`.trim());
+    b.addEventListener('click', () => select(i, true));
+    b.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) select(i, false); });
+    el.rail.append(b);
+  });
+}
+
+function paintHero(m, detail) {
+  const logo = detail?.images?.logos?.find((l) => !l.iso_639_1 || l.iso_639_1 === 'en') || detail?.images?.logos?.[0];
+  el.title.replaceChildren();
+  if (logo) {
+    const img = document.createElement('img');
+    img.className = 'title-logo';
+    img.alt = nameOf(m);
+    img.src = `${IMG}/w500${logo.file_path}`;
+    img.onerror = () => { el.title.textContent = nameOf(m); };
+    el.title.append(img);
+  } else {
+    el.title.textContent = nameOf(m);
+  }
+  el.text.textContent = m.overview || detail?.overview || '';
+
+  el.meta.replaceChildren();
+  const add = (txt, cls) => {
+    if (!txt) return;
+    const s = document.createElement('span');
+    if (cls) s.className = cls;
+    s.textContent = txt;
+    el.meta.append(s);
+  };
+  add(year(m));
+  if (m.vote_average) add(`TMDB ${m.vote_average.toFixed(1)}`, 'score');
+  add(m.media_type === 'tv' ? 'Serial' : 'Film');
+  if (detail?.runtime) add(`${detail.runtime} menit`);
+  (detail?.genres || []).slice(0, 3).forEach((g) => add(g.name));
+}
+
+async function getDetail(id) {
+  if (state.details.has(id)) return state.details.get(id);
+  try {
+    const d = await api(`/movies/${id}`);
+    state.details.set(id, d);
+    return d;
+  } catch { return null; }
+}
+
+async function select(i, byUser) {
+  const m = state.list[i];
+  if (!m) return;
+  const token = ++state.token;
+  state.index = i;
+
+  el.rail.querySelectorAll('.card').forEach((c) =>
+    c.setAttribute('aria-current', String(Number(c.dataset.i) === i)));
+  el.rail.querySelector(`[data-i="${i}"]`)?.scrollIntoView({
+    inline: 'center', block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth',
+  });
+
+  paintHero(m, state.details.get(m.id));
+  const [color] = await Promise.all([ambientFrom(m.poster_path || m.backdrop_path), swapBackdrop(m.backdrop_path || m.poster_path)]);
+  if (token !== state.token) return;
+  if (color) el.root.style.setProperty('--ambient', color);
+
+  const detail = await getDetail(m.id);
+  if (token === state.token && detail) paintHero(m, detail);
+
+  if (byUser) restartTimer();
+}
+
+function restartTimer() {
+  clearInterval(state.timer);
+  if (reduceMotion.matches || state.list.length < 2) return;
+  state.timer = setInterval(() => {
+    if (state.paused || document.hidden) return;
+    select((state.index + 1) % state.list.length, false);
+  }, ROTATE_MS);
+}
+
+async function show(loader, title) {
+  el.shelfTitle.textContent = title;
+  try {
+    const data = await loader();
+    state.list = (data.results || []).filter((m) => m.poster_path || m.backdrop_path).slice(0, 20);
+  } catch {
+    state.list = [];
+    el.title.textContent = 'Server film belum aktif';
+    el.text.textContent = `Pastikan backend berjalan di ${API}.`;
+    el.meta.replaceChildren();
+  }
+  renderRail();
+  if (state.list.length) select(0, true);
+}
+
+$('#search-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = $('#search-input').value.trim();
+  if (!q) return show(() => api('/movies/trending'), 'Trending');
+  show(() => api(`/movies/search?q=${encodeURIComponent(q)}`), `Hasil untuk "${q}"`);
+});
+
+el.open.addEventListener('click', () => {
+  const m = state.list[state.index];
+  if (m) document.dispatchEvent(new CustomEvent('moviefinder:detail', { detail: { id: m.id } }));
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input')) return;
+  if (e.key === 'ArrowRight') select(Math.min(state.index + 1, state.list.length - 1), true);
+  if (e.key === 'ArrowLeft') select(Math.max(state.index - 1, 0), true);
+});
+
+const stage = $('.stage');
+stage.addEventListener('pointerenter', () => { state.paused = true; });
+stage.addEventListener('pointerleave', () => { state.paused = false; });
+
+show(() => api('/movies/trending'), 'Trending');
+</script>
 </body>
 </html>
