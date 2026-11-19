@@ -37,6 +37,7 @@
         <button type="button" id="auth-btn" class="btn btn-quiet auth-btn">Masuk</button>
       </div>
     </header>
+    <script type="module" src="./js/header-size.js"></script>
 
     <main class="wrap main">
       <section class="hero" id="hero" aria-live="polite">
@@ -52,11 +53,7 @@
 
       <section id="shelf" class="shelf" aria-labelledby="shelf-title">
         <h2 id="shelf-title">Trending</h2>
-        <div class="rail-frame">
-          <div class="rail" id="rail"></div>
-          <button class="rail-arrow prev" aria-label="Film sebelumnya" aria-controls="rail" hidden>&#10094;</button>
-          <button class="rail-arrow next" aria-label="Film berikutnya" aria-controls="rail" hidden>&#10095;</button>
-        </div>
+        <div class="rail" id="rail"></div>
       </section>
     </main>
     <div class="collections-wrap"><div class="wrap collections">
@@ -195,7 +192,16 @@ function renderRail() {
       <span class="card-title"></span>`;
     b.querySelector('.card-title').textContent = nameOf(m);
     b.setAttribute('aria-label', `${nameOf(m)} ${y}`.trim());
-    b.addEventListener('click', () => openDetail(m));
+    b.addEventListener('click', () => select(i, true));
+    let hoverTimer;
+    b.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'mouse' || i === state.index) return;
+      hoverTimer = setTimeout(() => {
+        if (b.isConnected && b.matches(':hover')) select(i, false, false);
+      }, 120);
+    });
+    b.addEventListener('pointerleave', () => clearTimeout(hoverTimer));
+    b.addEventListener('pointerdown', () => clearTimeout(hoverTimer));
     el.rail.append(b);
   });
 }
@@ -239,23 +245,19 @@ async function getDetail(id) {
   } catch { return null; }
 }
 
-async function select(i, byUser) {
+async function select(i, byUser, centerCard = true) {
   const m = state.list[i];
   if (!m) return;
   const token = ++state.token;
   state.index = i;
-  document.querySelectorAll('#shelf .rail-arrow').forEach(button => button.hidden = state.list.length < 2);
   el.rail.querySelectorAll('.card').forEach((c) =>
     c.setAttribute('aria-current', String(Number(c.dataset.i) === i)));
-  const card = el.rail.querySelector(`[data-i="${i}"]`);
-  if (card && byUser) {
-    const railBounds = el.rail.getBoundingClientRect();
-    const cardBounds = card.getBoundingClientRect();
-    if (cardBounds.left < railBounds.left || cardBounds.right > railBounds.right) {
-      el.rail.scrollBy({
-        left: cardBounds.left - railBounds.left - (railBounds.width - cardBounds.width) / 2,
-        behavior: reduceMotion.matches ? 'auto' : 'smooth',
-      });
+  if (centerCard) {
+    const card = el.rail.querySelector(`[data-i="${i}"]`);
+    if (card) {
+      const left = card.getBoundingClientRect().left - el.rail.getBoundingClientRect().left;
+      el.rail.scrollBy({ left: left - (el.rail.clientWidth - card.offsetWidth) / 2,
+        behavior: reduceMotion.matches ? 'auto' : 'smooth' });
     }
   }
 
@@ -287,7 +289,6 @@ async function show(loader, title) {
   const request = ++state.request;
   ++state.token;
   clearInterval(state.timer);
-  document.querySelectorAll('#shelf .rail-arrow').forEach(button => button.hidden = true);
   state.list = [];
   el.open.disabled = true;
   el.title.textContent = 'Memuat film...';
@@ -360,12 +361,6 @@ el.rail.addEventListener('keydown', (e) => {
   el.rail.querySelector(`[data-i="${index}"]`)?.focus({ preventScroll: true });
   select(index, true);
 });
-
-function scrollFilms(direction) {
-  el.rail.scrollBy({left: direction * el.rail.clientWidth, behavior: reduceMotion.matches ? 'auto' : 'smooth'});
-}
-$('#shelf .prev').onclick = () => scrollFilms(-1);
-$('#shelf .next').onclick = () => scrollFilms(1);
 
 function updateNav() {
   document.querySelectorAll('.site-nav a').forEach(link => {
