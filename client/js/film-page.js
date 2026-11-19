@@ -1,3 +1,5 @@
+import { addToHistory } from './db.js';
+const localFilms = import.meta.glob('/media/*.mp4', { eager: true, query: '?url', import: 'default' });
 const $ = selector => document.querySelector(selector);
 const api = import.meta.env.VITE_API ?? '/api';
 const id = new URLSearchParams(location.search).get('id');
@@ -9,33 +11,20 @@ if (document.referrer && new URL(document.referrer).origin === location.origin &
 
 const prefix = 'moviefinder.watchLater.';
 const key = prefix + id;
+function savedMovie(movie) {
+  return JSON.stringify({ title: movie.title, poster: movie.poster_path || '', year: movie.release_date?.slice(0, 4) || '', time: Date.now() });
+}
 function updateSave() {
   const saved = localStorage.getItem(key) !== null;
   $('#save').textContent = saved ? 'Hapus dari Watch Later' : '+ Watch Later';
   $('#save').setAttribute('aria-pressed', String(saved));
 }
-$('#library').onclick = () => {
-  const items = $('#items');
-  items.replaceChildren();
-  try {
-    for (const name of Object.keys(localStorage).filter(name => name.startsWith(prefix))) {
-      const link = document.createElement('a');
-      link.href = './detail.html?id=' + encodeURIComponent(name.slice(prefix.length));
-      link.textContent = localStorage.getItem(name);
-      const li = document.createElement('li');
-      li.append(link);
-      items.append(li);
-    }
-    if (!items.children.length) items.textContent = 'Belum ada film tersimpan.';
-  } catch { items.textContent = 'Penyimpanan browser tidak tersedia.'; }
-  $('#watch-list').showModal();
-};
 function setupSave(movie) {
   try { updateSave(); } catch { return; }
   $('#save').hidden = false;
   $('#save').onclick = () => {
     try {
-      if (localStorage.getItem(key) === null) localStorage.setItem(key, movie.title);
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, savedMovie(movie));
       else localStorage.removeItem(key);
       updateSave();
     } catch { $('#notice').textContent = 'Perubahan gagal disimpan.'; }
@@ -79,7 +68,38 @@ async function load() {
     }
     if (movie.backdrop_path) $('.detail-art').style.backgroundImage = `url("${img}/w1280${movie.backdrop_path}")`;
     setupSave(movie);
-    showVideo(movie);
+    const dialog = $('#player-dialog');
+    const body = $('#player-body');
+    function openPlayer() {
+      $('#player-title').textContent = movie.title;
+      const source = movie.playback_url || localFilms['/media/' + id + '.mp4'];
+      if (source) {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.playsInline = true;
+        video.src = source;
+        video.addEventListener('playing', () => {
+          addToHistory(movie);
+          try { localStorage.setItem('moviefinder.history.' + id, JSON.stringify({ title: movie.title, poster: movie.poster_path || '', year: movie.release_date?.slice(0,4), time: Date.now() })); } catch {}
+        }, { once: true });
+        video.onerror = () => { body.textContent = 'Video gagal dimuat.'; };
+        body.replaceChildren(video);
+        dialog.showModal();
+        video.play().catch(() => {});
+      } else {
+        body.textContent = 'Film penuh belum tersedia untuk judul ini.';
+        dialog.showModal();
+      }
+    }
+    dialog.onclose = () => body.replaceChildren();
+    $('#play').disabled = false;
+    $('#play').onclick = () => {
+      $('#media iframe')?.remove();
+      openPlayer();
+    };
+    if (new URLSearchParams(location.search).get('play') === '1') openPlayer();
+    else showVideo(movie);
+    dialog.addEventListener('close', () => showVideo(movie));
   } catch {
     $('#title').textContent = 'Detail film gagal dimuat';
     $('#overview').textContent = 'Kembali ke daftar film atau muat ulang halaman.';

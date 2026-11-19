@@ -222,3 +222,21 @@ img { display: block; max-width: 100%; }
   .bar #search-form { flex-basis: 100%; }
   #shelf { scroll-margin-top: 8rem; }
 }
+.stage > .main { min-height: calc(100svh - 5rem); }
+.collections-wrap { background: var(--bg); }
+.collections { display: grid; gap: clamp(2rem,5vw,4rem); padding-block: 2rem 4rem; }
+.collections > section { min-width: 0; scroll-margin-top: 6rem; }
+.collection .rail { color: var(--ink-soft); }
+.collection .poster { display: grid; place-items: center; }
+#about { border-top: 1px solid var(--chip); padding-block: 2rem; }
+#about p { max-width: 58ch; margin-block: .75rem 1.5rem; color: var(--ink-soft); }
+#about dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1.4rem; }
+#about dt { color: var(--ink-soft); }
+@media(max-width:640px) { .collections > section { scroll-margin-top: 12rem; } }
+.bar .header-right { margin-left: auto; min-width: 0; }
+@media(max-width:640px) {
+  .bar .header-right { grid-column: 1 / -1; width: 100%; }
+  .header-right #search-form { flex: 1; }
+}
+.bar .site-nav { flex-wrap:wrap; gap:.3rem 1rem; }
+@media(max-width:900px) { .bar.wrap { flex-wrap:wrap; } .bar .header-right { width:100%; } }

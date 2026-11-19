@@ -22,7 +22,11 @@
       <a class="brand" href="./">MovieFinder</a>
       <nav class="site-nav" aria-label="Navigasi utama">
         <a href="./">Beranda</a>
-        <a href="#shelf">Film</a>
+        <a href="#shelf">Trending</a>
+        <a href="#favorites">Favorit</a>
+        <a href="#watch-later">Watch Later</a>
+        <a href="#riwayat">Riwayat</a>
+        <a href="#about">About</a>
       </nav>
       <div class="header-right">
         <form id="search-form" role="search">
@@ -40,8 +44,8 @@
         <p class="hero-text" id="hero-text"></p>
         <div class="meta" id="hero-meta"></div>
         <div class="actions">
-          <button type="button" class="btn btn-main" id="hero-open">Lihat detail</button>
-          <button type="button" class="btn btn-quiet" id="hero-fav">🤍 Favorit</button>
+          <button type="button" class="btn btn-main" id="hero-open">Putar</button>
+          <button type="button" class="btn btn-quiet" id="hero-fav">Favorit</button>
         </div>
         <noscript><p class="hero-text">Halaman ini membutuhkan JavaScript untuk memuat daftar film.</p></noscript>
       </section>
@@ -55,10 +59,41 @@
         </div>
       </section>
     </main>
+    <div class="collections-wrap"><div class="wrap collections">
+      <section class="shelf collection" id="favorites" aria-labelledby="favorites-title">
+        <h2 id="favorites-title">Favorit</h2>
+        <div class="rail-frame">
+          <div class="rail" id="favorites-rail"></div>
+          <button class="rail-arrow prev" aria-label="Geser Favorit ke kiri" aria-controls="favorites-rail" hidden>&#10094;</button>
+          <button class="rail-arrow next" aria-label="Geser Favorit ke kanan" aria-controls="favorites-rail" hidden>&#10095;</button>
+        </div>
+      </section>
+      <section class="shelf collection" id="watch-later" aria-labelledby="watch-later-title">
+        <h2 id="watch-later-title">Watch Later</h2>
+        <div class="rail-frame">
+          <div class="rail" id="watch-later-rail"></div>
+          <button class="rail-arrow prev" aria-label="Geser Watch Later ke kiri" aria-controls="watch-later-rail" hidden>&#10094;</button>
+          <button class="rail-arrow next" aria-label="Geser Watch Later ke kanan" aria-controls="watch-later-rail" hidden>&#10095;</button>
+        </div>
+      </section>
+      <section class="shelf collection" id="riwayat" aria-labelledby="riwayat-title">
+        <h2 id="riwayat-title">Riwayat tontonan</h2>
+        <div class="rail-frame">
+          <div class="rail" id="riwayat-rail"></div>
+          <button class="rail-arrow prev" aria-label="Geser Riwayat tontonan ke kiri" aria-controls="riwayat-rail" hidden>&#10094;</button>
+          <button class="rail-arrow next" aria-label="Geser Riwayat tontonan ke kanan" aria-controls="riwayat-rail" hidden>&#10095;</button>
+        </div>
+      </section>
+      <section id="about" aria-labelledby="about-title">
+        <h2 id="about-title">Tentang MovieFinder</h2>
+        <p>MovieFinder membantu kamu menemukan film, melihat trailer, dan menyimpan pilihan untuk ditonton nanti.</p>
+        <dl><dt>Pengembang</dt><dd>Tim MovieFinder</dd><dt>Data film dan poster</dt><dd>TMDB</dd></dl>
+      </section>
+    </div></div>
   </div>
 
   <script type="module">
-import { toggleFavorite, isFavorite, addToHistory } from './js/db.js';
+import { toggleFavorite, isFavorite } from './js/db.js';
 
 // Atur lewat VITE_API di .env (mis. VITE_API=/api bila memakai proxy Vite).
 const API = import.meta.env?.VITE_API ?? '/api';
@@ -209,11 +244,11 @@ async function select(i, byUser) {
   if (!m) return;
   const token = ++state.token;
   state.index = i;
-  document.querySelectorAll('.rail-arrow').forEach(button => button.hidden = state.list.length < 2);
+  document.querySelectorAll('#shelf .rail-arrow').forEach(button => button.hidden = state.list.length < 2);
   el.rail.querySelectorAll('.card').forEach((c) =>
     c.setAttribute('aria-current', String(Number(c.dataset.i) === i)));
   const card = el.rail.querySelector(`[data-i="${i}"]`);
-  if (card) {
+  if (card && byUser) {
     const railBounds = el.rail.getBoundingClientRect();
     const cardBounds = card.getBoundingClientRect();
     if (cardBounds.left < railBounds.left || cardBounds.right > railBounds.right) {
@@ -252,7 +287,7 @@ async function show(loader, title) {
   const request = ++state.request;
   ++state.token;
   clearInterval(state.timer);
-  document.querySelectorAll('.rail-arrow').forEach(button => button.hidden = true);
+  document.querySelectorAll('#shelf .rail-arrow').forEach(button => button.hidden = true);
   state.list = [];
   el.open.disabled = true;
   el.title.textContent = 'Memuat film...';
@@ -287,8 +322,8 @@ $('#search-form').addEventListener('submit', (e) => {
 
 function openDetail(movie) {
   if (!movie) return;
-  addToHistory(movie); // Simpan ke riwayat tontonan
-  location.assign(`./detail.html?id=${encodeURIComponent(movie.id)}`);
+  // Simpan ke riwayat tontonan saat pemutaran dimulai.
+  location.assign(`./detail.html?id=${encodeURIComponent(movie.id)}&play=1`);
 }
 
 el.open.addEventListener('click', () => openDetail(state.list[state.index]));
@@ -296,7 +331,7 @@ el.open.addEventListener('click', () => openDetail(state.list[state.index]));
 function updateFavButton(movieId) {
   if (!el.fav) return;
   const isFav = isFavorite(movieId);
-  el.fav.textContent = isFav ? '❤️ Tersimpan' : '🤍 Favorit';
+  el.fav.textContent = isFav ? 'Tersimpan' : 'Favorit';
   el.fav.classList.toggle('active', isFav);
 }
 
@@ -311,6 +346,7 @@ el.fav.addEventListener('click', () => {
   }
 
   const added = toggleFavorite(m);
+  window.dispatchEvent(new Event('favoriteschange'));
   updateFavButton(m.id);
   console.log(added ? `Ditambahkan ke favorit: ${m.title}` : `Dihapus dari favorit: ${m.title}`);
 });
@@ -325,12 +361,11 @@ el.rail.addEventListener('keydown', (e) => {
   select(index, true);
 });
 
-function stepFilm(direction) {
-  const count = state.list.length;
-  if (count > 1) select((state.index + direction + count) % count, true);
+function scrollFilms(direction) {
+  el.rail.scrollBy({left: direction * el.rail.clientWidth, behavior: reduceMotion.matches ? 'auto' : 'smooth'});
 }
-$('.prev').onclick = () => stepFilm(-1);
-$('.next').onclick = () => stepFilm(1);
+$('#shelf .prev').onclick = () => scrollFilms(-1);
+$('#shelf .next').onclick = () => scrollFilms(1);
 
 function updateNav() {
   document.querySelectorAll('.site-nav a').forEach(link => {
@@ -356,7 +391,7 @@ function updateAuthUI() {
   } else {
     authBtn.textContent = 'Masuk';
     authBtn.classList.remove('logged-in');
-    authBtn.title = 'Klik untuk masuk sebagai Demo User';
+    authBtn.title = 'Klik untuk masuk sebagai User';
   }
 }
 
@@ -366,8 +401,8 @@ authBtn.addEventListener('click', () => {
     // Jika sudah login, klik lagi untuk Logout
     localStorage.removeItem(AUTH_KEY);
   } else {
-    // Sekali klik langsung login sebagai Demo User
-    localStorage.setItem(AUTH_KEY, 'Demo User');
+    // Sekali klik langsung login sebagai User
+    localStorage.setItem(AUTH_KEY, 'User');
   }
   updateAuthUI();
 });
@@ -376,5 +411,6 @@ updateAuthUI();
 
 show(() => api('/movies/trending'), 'Trending');
 </script>
+  <script type="module" src="./js/nav-lists.js"></script>
 </body>
 </html>
