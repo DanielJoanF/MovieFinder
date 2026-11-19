@@ -1,5 +1,4 @@
 import { addToHistory } from './db.js';
-const localFilms = import.meta.glob('/media/*.mp4', { eager: true, query: '?url', import: 'default' });
 const $ = selector => document.querySelector(selector);
 const api = import.meta.env.VITE_API ?? '/api';
 const id = new URLSearchParams(location.search).get('id');
@@ -31,6 +30,18 @@ function setupSave(movie) {
   };
   window.addEventListener('storage', updateSave);
 }
+// Daftar domain VidSrc sebagai fallback
+const VIDSRC_HOSTS = [
+  'https://vidsrc.sh/embed',
+  'https://vidsrc.to/embed',
+  'https://vidsrc.cc/embed',
+];
+
+function getVidSrcUrl(tmdbId, hostIndex = 0) {
+  const host = VIDSRC_HOSTS[hostIndex] || VIDSRC_HOSTS[0];
+  return `${host}/movie/${tmdbId}`;
+}
+
 function showVideo(movie) {
   const trailers = (movie.videos?.results || []).filter(v =>
     v.site === 'YouTube' && v.type === 'Trailer' && /^[\w-]{11}$/.test(v.key));
@@ -70,26 +81,53 @@ async function load() {
     setupSave(movie);
     const dialog = $('#player-dialog');
     const body = $('#player-body');
+    const notice = $('#notice');
+
+    function buildVidSrcPlayer(tmdbId, hostIndex = 0) {
+      const embedUrl = getVidSrcUrl(tmdbId, hostIndex);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'vidsrc-wrapper';
+
+      const frame = document.createElement('iframe');
+      frame.src = embedUrl;
+      frame.title = 'Pemutar: ' + movie.title;
+      frame.allow = 'autoplay; encrypted-media; fullscreen';
+      frame.allowFullscreen = true;
+      frame.setAttribute('frameborder', '0');
+      frame.loading = 'lazy';
+
+      // Fallback ke host berikutnya jika gagal
+      frame.onerror = () => {
+        if (hostIndex + 1 < VIDSRC_HOSTS.length) {
+          body.replaceChildren(buildVidSrcPlayer(tmdbId, hostIndex + 1));
+        } else {
+          body.innerHTML = `
+            <p class="player-error">
+              Pemutar gagal dimuat dari semua sumber.<br>
+              <a href="https://vidsrc.to/embed/movie/${tmdbId}" target="_blank" rel="noopener">
+                Coba buka langsung di VidSrc →
+              </a>
+            </p>`;
+        }
+      };
+
+      wrapper.appendChild(frame);
+      return wrapper;
+    }
+
     function openPlayer() {
       $('#player-title').textContent = movie.title;
-      const source = movie.playback_url || localFilms['/media/' + id + '.mp4'];
-      if (source) {
-        const video = document.createElement('video');
-        video.controls = true;
-        video.playsInline = true;
-        video.src = source;
-        video.addEventListener('playing', () => {
-          addToHistory(movie);
-          try { localStorage.setItem('moviefinder.history.' + id, JSON.stringify({ title: movie.title, poster: movie.poster_path || '', year: movie.release_date?.slice(0,4), time: Date.now() })); } catch {}
-        }, { once: true });
-        video.onerror = () => { body.textContent = 'Video gagal dimuat.'; };
-        body.replaceChildren(video);
-        dialog.showModal();
-        video.play().catch(() => {});
-      } else {
-        body.textContent = 'Film penuh belum tersedia untuk judul ini.';
-        dialog.showModal();
-      }
+      body.replaceChildren(buildVidSrcPlayer(id));
+      addToHistory(movie);
+      try {
+        localStorage.setItem('moviefinder.history.' + id, JSON.stringify({
+          title: movie.title,
+          poster: movie.poster_path || '',
+          year: movie.release_date?.slice(0, 4),
+          time: Date.now()
+        }));
+      } catch {}
+      dialog.showModal();
     }
     dialog.onclose = () => body.replaceChildren();
     $('#play').disabled = false;
