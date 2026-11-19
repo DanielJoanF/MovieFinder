@@ -20,6 +20,10 @@
   <div class="stage">
     <header class="bar wrap">
       <a class="brand" href="./">MovieFinder</a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        <a href="./">Beranda</a>
+        <a href="#shelf">Film</a>
+      </nav>
       <form id="search-form" role="search">
         <label class="sr" for="search-input">Cari film</label>
         <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
@@ -29,25 +33,29 @@
 
     <main class="wrap main">
       <section class="hero" id="hero" aria-live="polite">
-        <h1 class="hero-title" id="hero-title"></h1>
+        <h1 class="hero-title" id="hero-title">Memuat film...</h1>
         <p class="hero-text" id="hero-text"></p>
         <div class="meta" id="hero-meta"></div>
         <div class="actions">
-          <button type="button" class="btn btn-main" id="hero-open">Lihat detail</button>
+          <button type="button" class="btn btn-main" id="hero-open" disabled>Lihat detail</button>
         </div>
         <noscript><p class="hero-text">Halaman ini membutuhkan JavaScript untuk memuat daftar film.</p></noscript>
       </section>
 
-      <section class="shelf" aria-labelledby="shelf-title">
+      <section id="shelf" class="shelf" aria-labelledby="shelf-title">
         <h2 id="shelf-title">Trending</h2>
-        <div class="rail" id="rail"></div>
+        <div class="rail-frame">
+          <div class="rail" id="rail"></div>
+          <button class="rail-arrow prev" aria-label="Film sebelumnya" aria-controls="rail" hidden>&#10094;</button>
+          <button class="rail-arrow next" aria-label="Film berikutnya" aria-controls="rail" hidden>&#10095;</button>
+        </div>
       </section>
     </main>
   </div>
 
   <script type="module">
 // Atur lewat VITE_API di .env (mis. VITE_API=/api bila memakai proxy Vite).
-const API = import.meta.env?.VITE_API ?? 'http://localhost:5000/api';
+const API = import.meta.env?.VITE_API ?? '/api';
 const IMG = 'https://image.tmdb.org/t/p';
 const ROTATE_MS = 9000;
 
@@ -61,7 +69,7 @@ const el = {
   layers: [$('#bg-a'), $('#bg-b')],
 };
 
-const state = { list: [], index: 0, layer: 0, token: 0, timer: null, details: new Map(), paused: false };
+const state = { list: [], index: 0, layer: 0, token: 0, timer: null, details: new Map(), request: 0 };
 
 async function api(path) {
   const res = await fetch(`${API}${path}`);
@@ -84,6 +92,7 @@ function loadImage(src, cors = false) {
 
 /* Warna suasana: rata-rata piksel poster, piksel yang lebih jenuh diberi bobot lebih. */
 async function ambientFrom(path) {
+  if (!path) return null;
   try {
     const img = await loadImage(`${IMG}/w92${path}`, true);
     const c = document.createElement('canvas');
@@ -107,12 +116,15 @@ async function ambientFrom(path) {
   }
 }
 
-async function swapBackdrop(path) {
+async function swapBackdrop(path, token) {
   if (!path) return;
-  try { await loadImage(`${IMG}/w1280${path}`); } catch { return; }
+  const size = matchMedia('(max-width: 640px)').matches ? 'w780' : 'w1280';
+  const url = `${IMG}/${size}${path}`;
+  try { await loadImage(url); } catch { return; }
+  if (token !== state.token) return;
   const next = el.layers[1 - state.layer];
   const prev = el.layers[state.layer];
-  next.style.backgroundImage = `url(${IMG}/w1280${path})`;
+  next.style.backgroundImage = `url(${url})`;
   next.classList.remove('on'); void next.offsetWidth; // restart animasi drift
   next.classList.add('on');
   prev.classList.remove('on');
@@ -142,8 +154,7 @@ function renderRail() {
       <span class="card-title"></span>`;
     b.querySelector('.card-title').textContent = nameOf(m);
     b.setAttribute('aria-label', `${nameOf(m)} ${y}`.trim());
-    b.addEventListener('click', () => select(i, true));
-    b.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) select(i, false); });
+    b.addEventListener('click', () => openDetail(m));
     el.rail.append(b);
   });
 }
@@ -156,7 +167,7 @@ function paintHero(m, detail) {
     img.className = 'title-logo';
     img.alt = nameOf(m);
     img.src = `${IMG}/w500${logo.file_path}`;
-    img.onerror = () => { el.title.textContent = nameOf(m); };
+    img.onerror = () => { if (el.title.contains(img)) el.title.textContent = nameOf(m); };
     el.title.append(img);
   } else {
     el.title.textContent = nameOf(m);
@@ -192,46 +203,71 @@ async function select(i, byUser) {
   if (!m) return;
   const token = ++state.token;
   state.index = i;
-
+  document.querySelectorAll('.rail-arrow').forEach(button => button.hidden = state.list.length < 2);
   el.rail.querySelectorAll('.card').forEach((c) =>
     c.setAttribute('aria-current', String(Number(c.dataset.i) === i)));
-  el.rail.querySelector(`[data-i="${i}"]`)?.scrollIntoView({
-    inline: 'center', block: 'nearest', behavior: reduceMotion.matches ? 'auto' : 'smooth',
-  });
+  const card = el.rail.querySelector(`[data-i="${i}"]`);
+  if (card) {
+    const railBounds = el.rail.getBoundingClientRect();
+    const cardBounds = card.getBoundingClientRect();
+    if (cardBounds.left < railBounds.left || cardBounds.right > railBounds.right) {
+      el.rail.scrollBy({
+        left: cardBounds.left - railBounds.left - (railBounds.width - cardBounds.width) / 2,
+        behavior: reduceMotion.matches ? 'auto' : 'smooth',
+      });
+    }
+  }
 
   paintHero(m, state.details.get(m.id));
-  const [color] = await Promise.all([ambientFrom(m.poster_path || m.backdrop_path), swapBackdrop(m.backdrop_path || m.poster_path)]);
-  if (token !== state.token) return;
-  if (color) el.root.style.setProperty('--ambient', color);
-
-  const detail = await getDetail(m.id);
-  if (token === state.token && detail) paintHero(m, detail);
-
+  el.open.disabled = false;
   if (byUser) restartTimer();
+
+  swapBackdrop(m.backdrop_path || m.poster_path, token);
+  const detailRequest = getDetail(m.id).then((detail) => {
+    if (token === state.token && detail) paintHero(m, detail);
+  });
+  const color = await ambientFrom(m.poster_path || m.backdrop_path);
+  if (token === state.token && color) el.root.style.setProperty('--ambient', color);
+  await detailRequest;
 }
 
 function restartTimer() {
   clearInterval(state.timer);
   if (reduceMotion.matches || state.list.length < 2) return;
   state.timer = setInterval(() => {
-    if (state.paused || document.hidden) return;
+    if (document.hidden || el.rail.matches(':hover') || $('.stage').matches(':focus-within')) return;
     select((state.index + 1) % state.list.length, false);
   }, ROTATE_MS);
 }
 
 async function show(loader, title) {
+  const request = ++state.request;
+  ++state.token;
+  clearInterval(state.timer);
+  document.querySelectorAll('.rail-arrow').forEach(button => button.hidden = true);
+  state.list = [];
+  el.open.disabled = true;
+  el.title.textContent = 'Memuat film...';
+  el.text.textContent = '';
+  el.meta.replaceChildren();
   el.shelfTitle.textContent = title;
+  el.rail.replaceChildren();
+  el.rail.setAttribute('aria-busy', 'true');
+
   try {
     const data = await loader();
+    if (request !== state.request) return;
     state.list = (data.results || []).filter((m) => m.poster_path || m.backdrop_path).slice(0, 20);
+    if (!state.list.length) el.title.textContent = 'Film tidak ditemukan';
+    renderRail();
+    if (state.list.length) select(0, true);
   } catch {
-    state.list = [];
-    el.title.textContent = 'Server film belum aktif';
-    el.text.textContent = `Pastikan backend berjalan di ${API}.`;
-    el.meta.replaceChildren();
+    if (request !== state.request) return;
+    el.title.textContent = 'Daftar film gagal dimuat';
+    el.text.textContent = 'Coba cari lagi atau muat ulang halaman.';
+  } finally {
+    if (request === state.request) el.rail.removeAttribute('aria-busy');
   }
-  renderRail();
-  if (state.list.length) select(0, true);
 }
 
 $('#search-form').addEventListener('submit', (e) => {
@@ -241,20 +277,39 @@ $('#search-form').addEventListener('submit', (e) => {
   show(() => api(`/movies/search?q=${encodeURIComponent(q)}`), `Hasil untuk "${q}"`);
 });
 
-el.open.addEventListener('click', () => {
-  const m = state.list[state.index];
-  if (m) document.dispatchEvent(new CustomEvent('moviefinder:detail', { detail: { id: m.id } }));
+function openDetail(movie) {
+  if (movie) location.assign(`./detail.html?id=${encodeURIComponent(movie.id)}`);
+}
+
+el.open.addEventListener('click', () => openDetail(state.list[state.index]));
+
+el.rail.addEventListener('keydown', (e) => {
+  const card = e.target.closest('.card');
+  const direction = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+  if (!card || !direction) return;
+  e.preventDefault();
+  const index = Number(card.dataset.i) + direction;
+  el.rail.querySelector(`[data-i="${index}"]`)?.focus({ preventScroll: true });
+  select(index, true);
 });
 
-document.addEventListener('keydown', (e) => {
-  if (e.target.closest('input')) return;
-  if (e.key === 'ArrowRight') select(Math.min(state.index + 1, state.list.length - 1), true);
-  if (e.key === 'ArrowLeft') select(Math.max(state.index - 1, 0), true);
-});
+function stepFilm(direction) {
+  const count = state.list.length;
+  if (count > 1) select((state.index + direction + count) % count, true);
+}
+$('.prev').onclick = () => stepFilm(-1);
+$('.next').onclick = () => stepFilm(1);
 
-const stage = $('.stage');
-stage.addEventListener('pointerenter', () => { state.paused = true; });
-stage.addEventListener('pointerleave', () => { state.paused = false; });
+function updateNav() {
+  document.querySelectorAll('.site-nav a').forEach(link => {
+    const current = link.hash === location.hash;
+    if (current) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+}
+window.addEventListener('hashchange', updateNav);
+updateNav();
+reduceMotion.addEventListener('change', restartTimer);
 
 show(() => api('/movies/trending'), 'Trending');
 </script>
