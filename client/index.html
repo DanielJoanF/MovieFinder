@@ -20,11 +20,14 @@
   <div class="stage">
     <header class="bar wrap">
       <a class="brand" href="./">MovieFinder</a>
-      <form id="search-form" role="search">
-        <label class="sr" for="search-input">Cari film</label>
-        <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
-        <button type="submit" class="btn btn-quiet">Cari</button>
-      </form>
+      <div class="header-right">
+        <form id="search-form" role="search">
+          <label class="sr" for="search-input">Cari film</label>
+          <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
+          <button type="submit" class="btn btn-quiet">Cari</button>
+        </form>
+        <button type="button" id="auth-btn" class="btn btn-quiet auth-btn">Masuk</button>
+      </div>
     </header>
 
     <main class="wrap main">
@@ -34,6 +37,7 @@
         <div class="meta" id="hero-meta"></div>
         <div class="actions">
           <button type="button" class="btn btn-main" id="hero-open">Lihat detail</button>
+          <button type="button" class="btn btn-quiet" id="hero-fav">🤍 Favorit</button>
         </div>
         <noscript><p class="hero-text">Halaman ini membutuhkan JavaScript untuk memuat daftar film.</p></noscript>
       </section>
@@ -46,6 +50,8 @@
   </div>
 
   <script type="module">
+import { toggleFavorite, isFavorite, addToHistory } from './js/db.js';
+
 // Atur lewat VITE_API di .env (mis. VITE_API=/api bila memakai proxy Vite).
 const API = import.meta.env?.VITE_API ?? 'http://localhost:5000/api';
 const IMG = 'https://image.tmdb.org/t/p';
@@ -57,7 +63,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const el = {
   rail: $('#rail'), shelfTitle: $('#shelf-title'),
   title: $('#hero-title'), text: $('#hero-text'), meta: $('#hero-meta'),
-  open: $('#hero-open'), root: document.documentElement,
+  open: $('#hero-open'), fav: $('#hero-fav'), root: document.documentElement,
   layers: [$('#bg-a'), $('#bg-b')],
 };
 
@@ -207,6 +213,9 @@ async function select(i, byUser) {
   const detail = await getDetail(m.id);
   if (token === state.token && detail) paintHero(m, detail);
 
+  // Update status tombol favorit
+  updateFavButton(m.id);
+
   if (byUser) restartTimer();
 }
 
@@ -243,7 +252,32 @@ $('#search-form').addEventListener('submit', (e) => {
 
 el.open.addEventListener('click', () => {
   const m = state.list[state.index];
-  if (m) document.dispatchEvent(new CustomEvent('moviefinder:detail', { detail: { id: m.id } }));
+  if (m) {
+    addToHistory(m); // Simpan ke riwayat tontonan
+    document.dispatchEvent(new CustomEvent('moviefinder:detail', { detail: { id: m.id } }));
+  }
+});
+
+function updateFavButton(movieId) {
+  if (!el.fav) return;
+  const isFav = isFavorite(movieId);
+  el.fav.textContent = isFav ? 'Tersimpan' : 'Favorit';
+  el.fav.classList.toggle('active', isFav);
+}
+
+el.fav.addEventListener('click', () => {
+  const m = state.list[state.index];
+  if (!m) return;
+
+  const user = localStorage.getItem(AUTH_KEY);
+  if (!user) {
+    alert('Silakan tekan tombol "Masuk" di pojok kanan atas terlebih dahulu untuk menyimpan film favorit!');
+    return;
+  }
+
+  const added = toggleFavorite(m);
+  updateFavButton(m.id);
+  console.log(added ? `Ditambahkan ke favorit: ${m.title}` : `Dihapus dari favorit: ${m.title}`);
 });
 
 document.addEventListener('keydown', (e) => {
@@ -255,6 +289,37 @@ document.addEventListener('keydown', (e) => {
 const stage = $('.stage');
 stage.addEventListener('pointerenter', () => { state.paused = true; });
 stage.addEventListener('pointerleave', () => { state.paused = false; });
+
+// Mockup Login 1-klik (tanpa form)
+const authBtn = $('#auth-btn');
+const AUTH_KEY = 'moviefinder_user';
+
+function updateAuthUI() {
+  const user = localStorage.getItem(AUTH_KEY);
+  if (user) {
+    authBtn.innerHTML = `${user} <span style="font-size: 0.8rem; opacity: 0.7;">(Keluar)</span>`;
+    authBtn.classList.add('logged-in');
+    authBtn.title = 'Klik untuk keluar';
+  } else {
+    authBtn.textContent = 'Masuk';
+    authBtn.classList.remove('logged-in');
+    authBtn.title = 'Klik untuk masuk sebagai Demo User';
+  }
+}
+
+authBtn.addEventListener('click', () => {
+  const user = localStorage.getItem(AUTH_KEY);
+  if (user) {
+    // Jika sudah login, klik lagi untuk Logout
+    localStorage.removeItem(AUTH_KEY);
+  } else {
+    // Sekali klik langsung login sebagai Demo User
+    localStorage.setItem(AUTH_KEY, 'Demo User');
+  }
+  updateAuthUI();
+});
+
+updateAuthUI();
 
 show(() => api('/movies/trending'), 'Trending');
 </script>
