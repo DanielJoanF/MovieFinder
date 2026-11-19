@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/menu.css" />
 </head>
 <body>
   <div class="backdrop" aria-hidden="true">
@@ -19,15 +20,11 @@
 
   <div class="stage">
     <header class="bar wrap">
+      <button type="button" id="menu-btn" class="menu-btn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
       <a class="brand" href="./">MovieFinder</a>
-      <nav class="site-nav" aria-label="Navigasi utama">
-        <a href="./">Beranda</a>
-        <a href="#shelf">Trending</a>
-        <a href="#favorites">Favorit</a>
-        <a href="#watch-later">Watch Later</a>
-        <a href="#riwayat">Riwayat</a>
-        <a href="#about">About</a>
-      </nav>
+   
       <div class="header-right">
         <form id="search-form" role="search">
           <label class="sr" for="search-input">Cari film</label>
@@ -92,6 +89,28 @@
     </div></div>
   </div>
 
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Menu" inert>
+    <div class="drawer-head">
+      <span class="brand">MovieFinder</span>
+      <button type="button" id="menu-close" class="menu-btn" aria-label="Tutup menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+    <nav>
+      <a class="d-item" href="#riwayat">Riwayat tontonan</a>
+      <details class="d-group" open>
+        <summary>Library</summary>
+        <a href="#favorites">Favorit</a>
+        <a href="#watch-later">Watch later</a>
+      </details>
+      <details class="d-group">
+        <summary>Genre</summary>
+        <div id="genre-list"></div>
+      </details>
+    </nav>
+  </aside>
+
   <script type="module">
 import { toggleFavorite, isFavorite } from './js/db.js';
 
@@ -99,6 +118,8 @@ import { toggleFavorite, isFavorite } from './js/db.js';
 const API = import.meta.env?.VITE_API ?? '/api';
 const IMG = 'https://image.tmdb.org/t/p';
 const ROTATE_MS = 9000;
+const GENRES = [[28, 'Aksi'], [12, 'Petualangan'], [16, 'Animasi'], [35, 'Komedi'], [80, 'Kriminal'], [18, 'Drama'],
+  [14, 'Fantasi'], [27, 'Horor'], [878, 'Fiksi Ilmiah'], [53, 'Thriller'], [10749, 'Romantis'], [9648, 'Misteri']];
 
 const $ = (s) => document.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -277,6 +298,7 @@ async function select(i, byUser) {
 function restartTimer() {
   clearInterval(state.timer);
   if (reduceMotion.matches || state.list.length < 2) return;
+  if (localStorage.getItem('moviefinder_autorotate') === 'off') return; // Pengaturan > Personalisasi
   state.timer = setInterval(() => {
     if (document.hidden || el.rail.matches(':hover') || $('.stage').matches(':focus-within')) return;
     select((state.index + 1) % state.list.length, false);
@@ -378,6 +400,35 @@ window.addEventListener('hashchange', updateNav);
 updateNav();
 reduceMotion.addEventListener('change', restartTimer);
 
+/* Hamburger menu */
+const drawer = $('#drawer'), scrim = $('#scrim'), menuBtn = $('#menu-btn');
+function setMenu(open) {
+  drawer.classList.toggle('open', open);
+  drawer.inert = !open;
+  scrim.hidden = !open;
+  menuBtn.setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('no-scroll', open);
+  if (open) drawer.querySelector('summary, a')?.focus();
+  else menuBtn.focus({ preventScroll: true });
+}
+menuBtn.addEventListener('click', () => setMenu(true));
+$('#menu-close').addEventListener('click', () => setMenu(false));
+scrim.addEventListener('click', () => setMenu(false));
+drawer.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.classList.contains('open')) setMenu(false); });
+
+function showGenre(id, name) {
+  show(() => api(`/movies/genre/${id}`), `Genre: ${name}`);
+  $('#shelf').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+}
+GENRES.forEach(([id, name]) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = name;
+  b.addEventListener('click', () => { setMenu(false); showGenre(id, name); });
+  $('#genre-list').append(b);
+});
+
 // Mockup Login 1-klik (tanpa form)
 const authBtn = $('#auth-btn');
 const AUTH_KEY = 'moviefinder_user';
@@ -409,7 +460,11 @@ authBtn.addEventListener('click', () => {
 
 updateAuthUI();
 
-show(() => api('/movies/trending'), 'Trending');
+// Link genre dari halaman lain: ./?genre=28
+const genreParam = new URLSearchParams(location.search).get('genre');
+const genreHit = GENRES.find(([id]) => String(id) === genreParam);
+if (genreHit) show(() => api(`/movies/genre/${genreHit[0]}`), `Genre: ${genreHit[1]}`);
+else show(() => api('/movies/trending'), 'Trending');
 </script>
   <script type="module" src="./js/nav-lists.js"></script>
 </body>

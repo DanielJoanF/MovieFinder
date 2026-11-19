@@ -95,10 +95,26 @@ img { display: block; max-width: 100%; }
 /* Hero */
 .hero { max-width: 690px; min-width: 0; }
 .hero-text:empty, .meta:empty, .actions:has(button:disabled) { display: none; }
+/* Hero: tinggi tetap, jadi logo dan deskripsi tidak naik-turun antar film */
 .hero-title {
-  font-size: clamp(2.2rem, 6vw, 4.25rem); font-weight: 700; line-height: 1.05;
-  overflow-wrap: break-word; min-width: 0;
-  margin-bottom: 1rem; text-wrap: balance;
+  height: 7.5rem; min-height: 0; overflow: hidden;
+  font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-box-pack: end;
+  -webkit-line-clamp: 2;
+}
+.hero-title:has(.title-logo) { display: flex; align-items: flex-end; }
+.title-logo { max-height: 7.5rem; }
+
+.hero-text {
+  height: 4.95rem; min-height: 0; line-height: 1.5; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+}
+.meta { min-height: 2rem; }
+
+@media (max-width: 640px) {
+  .hero-title { height: 5rem; font-size: 2rem; }
+  .title-logo { max-height: 5rem; }
+  .hero-text { height: 6.6rem; -webkit-line-clamp: 4; }
 }
 .title-logo { max-height: 120px; max-width: min(520px, 100%); width: auto; object-fit: contain; object-position: left bottom; }
 

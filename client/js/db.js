@@ -76,6 +76,7 @@ export function addToHistory(movie) {
     poster_path: movie.poster_path,
     backdrop_path: movie.backdrop_path,
     watched_at: new Date().toISOString()
+    
   });
   // Batasi riwayat maksimal 50 film terakhir
   if (list.length > 50) list.pop();
@@ -102,3 +103,26 @@ export function getProgress(movieId) {
   const map = read(STORAGE_KEYS.PROGRESS, {});
   return map[movieId] || null;
 }
+const WATCHLATER_KEY = 'moviefinder_watchlater';
+
+export function toggleWatchLater(movie) {
+  if (!movie?.id) return false;
+  const list = read(WATCHLATER_KEY, []);
+  const index = list.findIndex(m => m.id === movie.id);
+  if (index >= 0) { list.splice(index, 1); write(WATCHLATER_KEY, list); return false; }
+  list.unshift({
+    id: movie.id, title: movie.title || movie.name,
+    poster_path: movie.poster_path, backdrop_path: movie.backdrop_path,
+    year: (movie.release_date || movie.first_air_date || '').slice(0, 4),
+    added_at: new Date().toISOString()
+  });
+  write(WATCHLATER_KEY, list);
+  return true;
+}
+export function isWatchLater(movieId) { return read(WATCHLATER_KEY, []).some(m => m.id === movieId); }
+export function getWatchLater() { return read(WATCHLATER_KEY, []); }
+
+export function removeFromHistory(movieId) {
+  write(STORAGE_KEYS.HISTORY, read(STORAGE_KEYS.HISTORY, []).filter(m => m.id !== movieId));
+}
+export function clearHistory() { write(STORAGE_KEYS.HISTORY, []); }
