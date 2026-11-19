@@ -7,7 +7,7 @@
   --ink-faint: #8f97a3;
   --accent: #e50914;
   --surface: #1a1d23;
-  --chip: #ffffff26;0
+  --chip: #ffffff26;
   --font: 'Roboto', 'Segoe UI', system-ui, sans-serif;
   --ambient: #1f3b42;
   --radius: 14px;
@@ -98,7 +98,7 @@ img { display: block; max-width: 100%; }
 
 .hero-text {
   color: var(--ink-soft); font-size: 1.1rem; max-width: 62ch;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; color: var(--ink-soft); font-size: 0.95rem; }
@@ -157,7 +157,7 @@ img { display: block; max-width: 100%; }
   :root { --card: 118px; }
   .bar { flex-direction: column; align-items: stretch; }
   #search-form { width: 100%; }
-  .hero-text { -webkit-line-clamp: 4; font-size: 1rem; }
+  .hero-text { -webkit-line-clamp: 4; line-clamp: 4; font-size: 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
