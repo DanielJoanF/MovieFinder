@@ -49,6 +49,18 @@
         </p>
       </section>
 
+      <section class="about-section" aria-labelledby="features-heading">
+        <div class="about-card about-card-wide">
+          <p class="about-subtitle">MovieFinder</p>
+          <h2 id="features-heading">Apa yang bisa kamu lakukan</h2>
+          <ul class="about-list">
+            <li>Menjelajahi film trending dan mencari judul film favoritmu dengan cepat.</li>
+            <li>Melihat informasi detail film serta trailer sebelum memutuskan menonton.</li>
+            <li>Menyimpan tontonan ke daftar Favorit, Watch later, dan memantau Riwayat tontonan.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="about-grid" aria-label="Detail pengembang dan sumber data">
         <article class="about-card">
           <h2>Pengembang</h2>
@@ -64,6 +76,29 @@
         </article>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <div class="footer-col footer-brand-group">
+          <a class="brand footer-brand" href="./">MovieFinder</a>
+          <p class="footer-copy">
+            Temukan film, lihat trailer, dan simpan pilihan tontonanmu untuk ditonton nanti.
+          </p>
+        </div>
+
+        <div class="footer-col footer-meta">
+          <h2 class="footer-heading">Kredit</h2>
+          <p>Dikembangkan oleh <strong>Tim MovieFinder</strong></p>
+          <p class="footer-tmdb">
+            Data film &amp; poster oleh <strong>TMDB</strong>. Produk ini menggunakan TMDB API tetapi tidak didukung atau disertifikasi oleh TMDB.
+          </p>
+        </div>
+      </div>
+
+      <div class="wrap footer-bottom">
+        <p>&copy; 2026 MovieFinder. Semua hak cipta dilindungi.</p>
+      </div>
+    </footer>
   </div>
 
   <div class="scrim" id="scrim" hidden></div>
@@ -96,6 +131,26 @@
       event.preventDefault();
       const q = searchInput?.value.trim() ?? '';
       window.location.href = q ? `./?q=${encodeURIComponent(q)}` : './';
+    });
+
+    const menuBtn = document.getElementById('menu-btn');
+    const menuClose = document.getElementById('menu-close');
+    const drawer = document.getElementById('drawer');
+    const scrim = document.getElementById('scrim');
+
+    function setDrawerOpen(isOpen) {
+      if (!drawer || !scrim || !menuBtn) return;
+      drawer.inert = !isOpen;
+      drawer.classList.toggle('open', isOpen);
+      scrim.hidden = !isOpen;
+      menuBtn.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    menuBtn?.addEventListener('click', () => setDrawerOpen(true));
+    menuClose?.addEventListener('click', () => setDrawerOpen(false));
+    scrim?.addEventListener('click', () => setDrawerOpen(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setDrawerOpen(false);
     });
   </script>
 </body>
