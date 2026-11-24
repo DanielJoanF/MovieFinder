@@ -1,7 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { searchMovies, getTrendingMovies, getMovieDetails } from './tmdb.js';
+import {
+  searchMovies,
+  getTrendingMovies,
+  getMovieDetails,
+  getGenreList,
+  getMovieByGenre
+} from './tmdb.js';
 
 dotenv.config();
 
@@ -68,6 +74,32 @@ app.get('/api/movies/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 5. Daftar Genre resmi TMDB
+app.get('/api/genres', async (req, res) => {
+  try {
+    const data = await getGenreList();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 6. Ambil Film berdasarkan Genre (Discover Movie)
+// Mendukung endpoint /api/genres/:genreId/movies maupun /api/movies/genre/:genreId
+async function handleMoviesByGenre(req, res) {
+  const genreId = req.params.genreId || req.params.id;
+  const page = req.query.page || 1;
+  try {
+    const data = await getMovieByGenre(genreId, page);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+app.get('/api/genres/:genreId/movies', handleMoviesByGenre);
+app.get('/api/movies/genre/:genreId', handleMoviesByGenre);
 
 app.listen(PORT, () => {
   console.log(`Movie Finder API listening on http://localhost:${PORT}`);

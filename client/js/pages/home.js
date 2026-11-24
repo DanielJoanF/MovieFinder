@@ -4,6 +4,7 @@ import { $, yearOf, nameOf } from '../utils/dom.js';
 import { initGlobalNavbar } from '../components/navbar.js';
 import { initCollectionShelves } from '../components/shelves.js';
 import { apiRequest } from '../api/movies.js';
+import { fetchMoviesByGenreAPI } from '../api/movies.js';
 
 const ROTATE_MS = 9000;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -241,7 +242,7 @@ function updateFavButton(movieId) {
 }
 
 function showGenre(id, name) {
-  show(() => apiRequest(`/movies/genre/${id}`), `Genre: ${name}`);
+  show(() => fetchMoviesByGenreAPI(id), `Genre: ${name}`);
   $('#shelf')?.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
 }
 

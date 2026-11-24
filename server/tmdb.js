@@ -41,3 +41,19 @@ export async function getMovieDetails(id) {
   if (!res.ok) throw new Error(`TMDB error: ${res.statusText}`);
   return res.json();
 }
+
+export async function getGenreList() {
+  const options = getHeaders();
+  const url = `${TMDB_BASE_URL}/genre/movie/list?language=id-ID`;
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`TMDB error: ${res.statusText}`);
+  return res.json();
+}
+
+export async function getMovieByGenre(genreId, page = 1) {
+  const options = getHeaders();
+  const url = `${TMDB_BASE_URL}/discover/movie?with_genres=${genreId}&language=id-ID&sort_by=popularity.desc&page=${page}`;
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`TMDB error: ${res.statusText}`);
+  return res.json();
+}

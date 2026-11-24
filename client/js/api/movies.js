@@ -23,6 +23,10 @@ export async function fetchMovieDetailsAPI(id) {
   return apiRequest(`/movies/${id}`);
 }
 
+export async function fetchGenresAPI() {
+  return apiRequest('/genres');
+}
+
 export async function fetchMoviesByGenreAPI(genreId) {
-  return apiRequest(`/movies/genre/${genreId}`);
+  return apiRequest(`/genres/${genreId}/movies`);
 }
