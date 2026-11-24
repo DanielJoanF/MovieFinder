@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — MovieFinder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/menu.css" />
+  <link rel="stylesheet" href="./css/about.css" />
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="bg" id="bg-a"></div>
+    <div class="bg" id="bg-b"></div>
+    <div class="tint"></div>
+    <div class="veil"></div>
+  </div>
+
+  <div class="stage">
+    <header class="bar wrap">
+      <button type="button" id="menu-btn" class="menu-btn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+      <a class="brand" href="./">MovieFinder</a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        <a href="./">Beranda</a>
+        <a href="./#shelf">Trending</a>
+        <a href="./library.html">Library</a>
+        <a href="./about.html" class="active" aria-current="page">About</a>
+      </nav>
+      <div class="header-right">
+        <form id="search-form" role="search">
+          <label class="sr" for="search-input">Cari film</label>
+          <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
+          <button type="submit" class="btn btn-quiet">Cari</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="wrap main about-page">
+      <section class="about-hero">
+        <p class="eyebrow">Informasi Aplikasi</p>
+        <h1 class="about-title">Tentang MovieFinder</h1>
+        <p class="about-lead">
+          MovieFinder membantu kamu menemukan film, melihat trailer, dan menyimpan pilihan untuk ditonton nanti.
+        </p>
+      </section>
+
+      <section class="about-grid" aria-label="Detail pengembang dan sumber data">
+        <article class="about-card">
+          <h2>Pengembang</h2>
+          <p>Tim MovieFinder</p>
+        </article>
+
+        <article class="about-card">
+          <h2>Data film dan poster</h2>
+          <p>TMDB</p>
+          <p class="attribution-note">
+            Produk ini menggunakan TMDB API tetapi tidak didukung atau disertifikasi oleh TMDB.
+          </p>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Menu" inert>
+    <div class="drawer-head">
+      <span class="brand">MovieFinder</span>
+      <button type="button" id="menu-close" class="menu-btn" aria-label="Tutup menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+    <nav>
+      <a class="d-item" href="./#riwayat">Riwayat tontonan</a>
+      <details class="d-group" open>
+        <summary>Library</summary>
+        <a href="./#favorites">Favorit</a>
+        <a href="./#watch-later">Watch later</a>
+      </details>
+      <details class="d-group">
+        <summary>Genre</summary>
+        <div id="genre-list"></div>
+      </details>
+    </nav>
+  </aside>
+
+  <script type="module">
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+
+    searchForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const q = searchInput?.value.trim() ?? '';
+      window.location.href = q ? `./?q=${encodeURIComponent(q)}` : './';
+    });
+  </script>
+</body>
+</html>

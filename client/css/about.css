@@ -1,0 +1,90 @@
+.site-nav a.active {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.about-page {
+  padding-top: 2.5rem;
+  padding-bottom: 4rem;
+}
+
+.about-hero {
+  background: rgba(19, 26, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.25rem 2rem;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #e50914;
+  background: rgba(229, 9, 20, 0.16);
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  margin-bottom: 0.85rem;
+}
+
+.about-title {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.about-lead {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.about-card {
+  background: rgba(19, 26, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.about-card h2 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.45rem;
+}
+
+.about-card p {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.about-card .attribution-note {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .about-hero {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+}
