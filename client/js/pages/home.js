@@ -92,8 +92,8 @@ function renderRail() {
     return;
   }
   state.list.forEach((m, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
+    const b = document.createElement('a');
+    b.href = `./detail.html?id=${encodeURIComponent(m.id)}`;
     b.className = 'card';
     b.dataset.i = i;
     const y = yearOf(m);
@@ -105,7 +105,6 @@ function renderRail() {
       <span class="card-title"></span>`;
     b.querySelector('.card-title').textContent = nameOf(m);
     b.setAttribute('aria-label', `${nameOf(m)} ${y}`.trim());
-    b.addEventListener('click', () => select(i, true));
 
     let hoverTimer;
     b.addEventListener('pointerenter', (event) => {

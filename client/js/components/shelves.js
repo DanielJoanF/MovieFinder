@@ -58,7 +58,7 @@ function setupShelf(section, prefix, empty) {
 
         const card = document.createElement('a');
         card.className = 'card';
-        card.href = `./detail.html?id=${id}&play=1`;
+        card.href = `./detail.html?id=${id}`;
         card.innerHTML = '<span class="poster"></span><span class="card-title"></span>';
         card.lastElementChild.textContent = movie.title;
         const poster = card.firstElementChild;

@@ -58,7 +58,7 @@ function setupSaveButton(movie) {
   window.addEventListener('storage', () => updateSaveUI(movie.id));
 }
 
-function showTrailer(movie) {
+function showTrailer(movie, allowAutoplay = true) {
   const trailers = (movie.videos?.results || []).filter(v =>
     v.site === 'YouTube' && v.type === 'Trailer' && /^[\w-]{11}$/.test(v.key)
   );
@@ -70,7 +70,7 @@ function showTrailer(movie) {
   frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   frame.allowFullscreen = true;
   frame.referrerPolicy = 'strict-origin-when-cross-origin';
-  const autoplay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
+  const autoplay = allowAutoplay && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 0;
   frame.src = `https://www.youtube-nocookie.com/embed/${trailer.key}?playsinline=1&mute=1&autoplay=${autoplay}`;
 
   $('#media').replaceChildren(frame);
@@ -136,28 +136,26 @@ async function loadDetail() {
       frame.allow = 'autoplay; encrypted-media; fullscreen';
       frame.allowFullscreen = true;
       frame.setAttribute('frameborder', '0');
-      frame.loading = 'lazy';
-
-      frame.onerror = () => {
-        if (hostIndex + 1 < VIDSRC_HOSTS.length) {
-          body.replaceChildren(buildVidSrcPlayer(tmdbId, hostIndex + 1));
-        } else {
-          body.innerHTML = `
-            <p class="player-error">
-              Pemutar gagal dimuat dari semua sumber.<br>
-              <a href="https://vidsrc.to/embed/movie/${tmdbId}" target="_blank" rel="noopener">
-                Coba buka langsung di VidSrc →
-              </a>
-            </p>`;
-        }
+      const switchSource = document.createElement('button');
+      switchSource.type = 'button';
+      switchSource.className = 'btn btn-quiet';
+      switchSource.textContent = 'Ganti sumber pemutar';
+      switchSource.onclick = () => {
+        const next = (hostIndex + 1) % VIDSRC_HOSTS.length;
+        body.replaceChildren(buildVidSrcPlayer(tmdbId, next));
+        body.querySelector('button')?.focus();
       };
 
       wrapper.appendChild(frame);
-      return wrapper;
+      const player = document.createDocumentFragment();
+      player.append(wrapper, switchSource);
+      return player;
     }
 
     function openPlayer() {
-      if (!dialog || !body) return;
+      if (!dialog || !body || dialog.open) return;
+      $('#media iframe')?.remove();
+      dialog.showModal();
       $('#player-title').textContent = movie.title;
       body.replaceChildren(buildVidSrcPlayer(id));
       addToHistory(movie);
@@ -171,20 +169,17 @@ async function loadDetail() {
         }));
       } catch {}
 
-      dialog.showModal();
     }
 
     if (dialog && body) {
-      dialog.onclose = () => body.replaceChildren();
-    }
-
-    const playBtn = $('#play');
-    if (playBtn) {
-      playBtn.disabled = false;
-      playBtn.onclick = () => {
-        $('#media iframe')?.remove();
-        openPlayer();
+      dialog.onclose = () => {
+        body.replaceChildren();
+        showTrailer(movie, false);
+        $('#play')?.focus();
       };
+      const playBtn = $('#play');
+      playBtn.disabled = false;
+      playBtn.onclick = openPlayer;
     }
 
     if (new URLSearchParams(location.search).get('play') === '1') {
@@ -193,9 +188,6 @@ async function loadDetail() {
       showTrailer(movie);
     }
 
-    if (dialog) {
-      dialog.addEventListener('close', () => showTrailer(movie));
-    }
   } catch (err) {
     console.error(err);
     $('#title').textContent = 'Detail film gagal dimuat';
