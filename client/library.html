@@ -20,6 +20,7 @@
       <a href="./">Beranda</a>
       <a href="./#shelf">Trending</a>
       <a href="./library.html">Library</a>
+      <a href="./about.html">About</a>
     </nav>
     <div class="header-right">
       <form id="search-form" role="search">
@@ -30,26 +31,26 @@
     </div>
   </header>
   <div class="scrim" id="scrim" hidden></div>
-<aside class="drawer" id="drawer" aria-label="Menu" inert>
-  <div class="drawer-head">
-    <span class="brand">MovieFinder</span>
-    <button type="button" id="menu-close" class="menu-btn" aria-label="Tutup menu">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a class="d-item" href="./library.html?tab=riwayat">Riwayat tontonan</a>
-    <details class="d-group" open>
-      <summary>Library</summary>
-      <a href="./library.html?tab=favorit">Favorit</a>
-      <a href="./library.html?tab=watch-later">Watch later</a>
-    </details>
-    <details class="d-group">
-      <summary>Genre</summary>
-      <div id="genre-list"></div>
-    </details>
-  </nav>
-</aside>
+  <aside class="drawer" id="drawer" aria-label="Menu" inert>
+    <div class="drawer-head">
+      <span class="brand">MovieFinder</span>
+      <button type="button" id="menu-close" class="menu-btn" aria-label="Tutup menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+    <nav>
+      <a class="d-item" href="./library.html?tab=riwayat">Riwayat tontonan</a>
+      <details class="d-group" open>
+        <summary>Library</summary>
+        <a href="./library.html?tab=favorit">Favorit</a>
+        <a href="./library.html?tab=watch-later">Watch later</a>
+      </details>
+      <details class="d-group">
+        <summary>Genre</summary>
+        <div id="genre-list"></div>
+      </details>
+    </nav>
+  </aside>
 
   <main class="wrap page">
     <h1 id="page-title">Library</h1>
@@ -62,6 +63,29 @@
     <div class="lib-grid" id="grid" role="tabpanel"></div>
     <noscript><p>Halaman ini membutuhkan JavaScript.</p></noscript>
   </main>
+
+  <footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-brand-group">
+      <a class="brand footer-brand" href="./">MovieFinder</a>
+      <p class="footer-copy">
+        Temukan film, lihat trailer, dan simpan pilihan tontonanmu untuk ditonton nanti.
+      </p>
+    </div>
+
+    <div class="footer-col footer-meta">
+      <h2 class="footer-heading">Kredit</h2>
+      <p>Dikembangkan oleh <strong>Tim MovieFinder</strong></p>
+      <p class="footer-tmdb">
+        Data film &amp; poster oleh <strong>TMDB</strong>. Produk ini menggunakan TMDB API tetapi tidak didukung atau disertifikasi oleh TMDB.
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap footer-bottom">
+    <p>&copy; 2026 MovieFinder. Semua hak cipta dilindungi.</p>
+  </div>
+</footer>
 
   <script type="module" src="./js/pages/library.js"></script>
 </body>
