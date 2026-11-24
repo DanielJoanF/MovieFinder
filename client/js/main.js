@@ -17,3 +17,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupLibraryNav();
   loadTrendingMovies();
 });
+const navLinks = document.querySelectorAll("[data-page]");
+const pages = document.querySelectorAll(".page");
+
+function showPage(pageId) {
+    pages.forEach(page => {
+        page.classList.remove("active");
+    });
+
+    navLinks.forEach(link => {
+        link.classList.remove("active");
+    });
+
+    const selectedPage = document.getElementById(pageId);
+
+    if (selectedPage) {
+        selectedPage.classList.add("active");
+    }
+
+    document.querySelectorAll(
+        `.navbar nav [data-page="${pageId}"]`
+    ).forEach(link => {
+        link.classList.add("active");
+    });
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+navLinks.forEach(link => {
+    link.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        const pageId = this.dataset.page;
+
+        showPage(pageId);
+    });
+});
