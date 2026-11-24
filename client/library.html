@@ -12,11 +12,21 @@
 </head>
 <body class="plain">
   <header class="bar wrap">
-    <div class="bar-left">
-      <button type="button" id="menu-btn" class="menu-btn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-      </button>
-      <a class="brand" href="./">MovieFinder</a>
+    <button type="button" id="menu-btn" class="menu-btn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+    </button>
+    <a class="brand" href="./">MovieFinder</a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="./">Beranda</a>
+      <a href="./#shelf">Trending</a>
+      <a href="./library.html">Library</a>
+    </nav>
+    <div class="header-right">
+      <form id="search-form" role="search">
+        <label class="sr" for="search-input">Cari film</label>
+        <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
+        <button type="submit" class="btn btn-quiet">Cari</button>
+      </form>
     </div>
   </header>
   <div class="scrim" id="scrim" hidden></div>
@@ -38,11 +48,6 @@
       <summary>Genre</summary>
       <div id="genre-list"></div>
     </details>
-    <details class="d-group">
-      <summary>Pengaturan akun</summary>
-      <a href="./settings.html#akun">Akun</a>
-      <a href="./settings.html#personalisasi">Personalisasi</a>
-    </details>
   </nav>
 </aside>
 
@@ -58,88 +63,6 @@
     <noscript><p>Halaman ini membutuhkan JavaScript.</p></noscript>
   </main>
 
-  <script type="module">
-import { getHistory, getFavorites, getWatchLater, toggleFavorite, toggleWatchLater, removeFromHistory, clearHistory } from './js/db.js';
-
-const IMG = 'https://image.tmdb.org/t/p';
-const $ = (s) => document.querySelector(s);
-const GENRES = [[28, 'Aksi'], [12, 'Petualangan'], [16, 'Animasi'], [35, 'Komedi'], [80, 'Kriminal'], [18, 'Drama'],
-  [14, 'Fantasi'], [27, 'Horor'], [878, 'Fiksi Ilmiah'], [53, 'Thriller'], [10749, 'Romantis'], [9648, 'Misteri']];
-const drawer = $('#drawer'), scrim = $('#scrim'), menuBtn = $('#menu-btn');
-function setMenu(open) {
-  drawer.classList.toggle('open', open);
-  drawer.inert = !open;
-  scrim.hidden = !open;
-  menuBtn.setAttribute('aria-expanded', String(open));
-  document.body.classList.toggle('no-scroll', open);
-  if (open) drawer.querySelector('summary, a')?.focus(); else menuBtn.focus({ preventScroll: true });
-}
-menuBtn.addEventListener('click', () => setMenu(true));
-$('#menu-close').addEventListener('click', () => setMenu(false));
-scrim.addEventListener('click', () => setMenu(false));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.classList.contains('open')) setMenu(false); });
-GENRES.forEach(([id, name]) => {
-  const a = document.createElement('a');
-  a.href = `./?genre=${id}`;
-  a.textContent = name;
-  $('#genre-list').append(a);
-});
-
-const TABS = {
-  'riwayat': { title: 'Riwayat tontonan', get: getHistory, remove: (m) => removeFromHistory(m.id), empty: 'Belum ada film yang kamu buka.' },
-  'favorit': { title: 'Favorit', get: getFavorites, remove: (m) => toggleFavorite(m), empty: 'Belum ada film favorit. Masuk, lalu tekan Favorit di film yang kamu suka.' },
-  'watch-later': { title: 'Watch later', get: getWatchList, remove: (m) => toggleWatchLater(m), empty: 'Belum ada film di daftar tonton nanti.' },
-};
-function getWatchList() { return getWatchLater(); }
-
-let tab = new URLSearchParams(location.search).get('tab');
-if (!TABS[tab]) tab = 'riwayat';
-
-function render() {
-  const t = TABS[tab];
-  $('#page-title').textContent = t.title;
-  document.title = `${t.title} | MovieFinder`;
-  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-  const list = t.get();
-  $('#count').textContent = list.length ? `${list.length} film` : '';
-  $('#clear').hidden = tab !== 'riwayat' || !list.length;
-
-  const grid = $('#grid');
-  grid.replaceChildren();
-  if (!list.length) {
-    const p = document.createElement('p');
-    p.className = 'empty';
-    p.textContent = t.empty;
-    grid.append(p);
-    return;
-  }
-  list.forEach((m) => {
-    const card = document.createElement('div');
-    card.className = 'lib-card';
-    const a = document.createElement('a');
-    a.href = `./detail.html?id=${encodeURIComponent(m.id)}`;
-    a.innerHTML = `<span class="poster">${m.poster_path ? `<img src="${IMG}/w342${m.poster_path}" alt="" loading="lazy" />` : ''}${m.year ? `<span class="year">${m.year}</span>` : ''}</span><span class="card-title"></span>`;
-    a.querySelector('.card-title').textContent = m.title || '';
-    const rm = document.createElement('button');
-    rm.type = 'button';
-    rm.className = 'lib-remove';
-    rm.textContent = 'Hapus';
-    rm.setAttribute('aria-label', `Hapus ${m.title || 'film'} dari ${t.title}`);
-    rm.addEventListener('click', () => { t.remove(m); render(); });
-    card.append(a, rm);
-    grid.append(card);
-  });
-}
-
-document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => {
-  tab = b.dataset.tab;
-  history.replaceState(null, '', `?tab=${tab}`);
-  render();
-}));
-$('#clear').addEventListener('click', () => {
-  if (confirm('Hapus semua riwayat tontonan?')) { clearHistory(); render(); }
-});
-render();
-</script>
+  <script type="module" src="./js/pages/library.js"></script>
 </body>
 </html>

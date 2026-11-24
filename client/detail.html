@@ -5,19 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Detail film · MovieFinder</title>
   <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/menu.css">
   <link rel="stylesheet" href="./css/detail.css">
 </head>
 <body>
   <div class="detail-art" aria-hidden="true"></div>
-  <header class="wrap bar"><a class="brand" href="./">MovieFinder</a><nav class="site-nav" aria-label="Navigasi utama">
-        <a href="./">Beranda</a>
-        <a href="./#shelf">Trending</a>
-        <a href="./#favorites">Favorit</a>
-        <a href="./#watch-later">Watch Later</a>
-        <a href="./#riwayat">Riwayat</a>
-        <a href="./#about">About</a>
-      </nav><a href="./" id="back">← Kembali</a></header>
-    <script type="module" src="./js/header-size.js"></script>
+  <header class="bar wrap">
+    <button type="button" id="menu-btn" class="menu-btn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+    </button>
+    <a class="brand" href="./">MovieFinder</a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="./">Beranda</a>
+      <a href="./#shelf">Trending</a>
+      <a href="./library.html">Library</a>
+      <a href="./" id="back">← Kembali</a>
+    </nav>
+    <div class="header-right">
+      <form id="search-form" role="search">
+        <label class="sr" for="search-input">Cari film</label>
+        <input type="search" id="search-input" placeholder="Cari film favoritmu" autocomplete="off" />
+        <button type="submit" class="btn btn-quiet">Cari</button>
+      </form>
+    </div>
+  </header>
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Menu" inert>
+    <div class="drawer-head">
+      <span class="brand">MovieFinder</span>
+      <button type="button" id="menu-close" class="menu-btn" aria-label="Tutup menu">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+    <nav>
+      <a class="d-item" href="./library.html?tab=riwayat">Riwayat tontonan</a>
+      <details class="d-group" open>
+        <summary>Library</summary>
+        <a href="./library.html?tab=favorit">Favorit</a>
+        <a href="./library.html?tab=watch-later">Watch later</a>
+      </details>
+      <details class="d-group">
+        <summary>Genre</summary>
+        <div id="genre-list"></div>
+      </details>
+    </nav>
+  </aside>
   <main class="wrap detail-page">
     <section class="film-info">
       <div id="media" hidden><img id="poster" alt=""></div>
@@ -36,6 +68,6 @@
     <form method="dialog"><button class="btn btn-quiet" autofocus>Tutup</button></form>
     <h2 id="player-title">Pemutar film</h2><div id="player-body"></div>
   </dialog>
-  <script type="module" src="./js/film-page.js"></script>
+  <script type="module" src="./js/pages/detail.js"></script>
 </body>
 </html>

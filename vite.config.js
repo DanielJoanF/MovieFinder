@@ -13,7 +13,13 @@ export default defineConfig({
     }
   },
   build: {
-    rollupOptions: { input: { home: path.resolve('client/index.html'), detail: path.resolve('client/detail.html') } },
+    rollupOptions: {
+      input: {
+        home: path.resolve('client/index.html'),
+        detail: path.resolve('client/detail.html'),
+        library: path.resolve('client/library.html')
+      }
+    },
     outDir: '../dist',
     emptyOutDir: true
   }
